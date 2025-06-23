@@ -7,11 +7,11 @@
     <style>
         body {
             margin: 0;
-            padding: 0;
+            padding: 10px 0;
             background: #000000;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
             font-family: 'Arial', sans-serif;
         }
@@ -19,7 +19,7 @@
         #gameContainer {
             text-align: center;
             background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
+            padding: 10px 20px 20px 20px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
@@ -59,7 +59,6 @@
 </head>
 <body>
     <div id="gameContainer">
-        <h1 class="rasta-text">🎮 Rasta Mario Adventure 🎮</h1>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div id="gameInfo">
             <span>Personnage: <span id="characterName">Bob Marley</span></span> | 
@@ -72,6 +71,7 @@
             🎯 Contrôles: Flèches ← → pour bouger | Espace pour sauter | Collecte les 🍃 ganja !<br>
             🎪 Objectif: Libère Jah People du système oppressif de Babylone !
         </div>
+        <h1 class="rasta-text">🎮 Rasta Mario Adventure 🎮</h1>
     </div>
     
     <script src="game.js"></script>

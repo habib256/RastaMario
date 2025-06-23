@@ -27,6 +27,7 @@ let gameState = {
     score: 0,
     lives: 3,
     level: 1,
+    maxLevelReached: 1,
     gameRunning: true,
     keys: {},
     gameOver: false,
@@ -73,26 +74,31 @@ class Player {
         // Gravité
         this.velocityY += 0.8;
 
-        // Mise à jour de la position
+        // Mise à jour de la position horizontale
         this.x += this.velocityX;
+        
+        // Mise à jour de la position verticale
         this.y += this.velocityY;
+        this.checkVerticalPlatformCollisions();
 
         // Limites de l'écran
         if (this.x < 0) this.x = 0;
         if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
 
-        // Sol de base
+        // Sol de base (avec vérification de direction)
         if (this.y + this.height > canvas.height - 50) {
-            this.y = canvas.height - 50 - this.height;
-            this.velocityY = 0;
-            this.onGround = true;
+            if (this.velocityY >= 0) { // Seulement si Bob tombe ou est statique
+                this.y = canvas.height - 50 - this.height;
+                this.velocityY = 0;
+                this.onGround = true;
+            }
         }
         
         // Vérification de chute hors de l'écran (mort)
         if (this.y > canvas.height + 100) {
             gameState.lives--;
             gameState.deathMessage = "Bob est tombé dans le vide !";
-            gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+            gameState.deathMessageTimer = 240; // 4 secondes à 60fps
             updateLives();
             if (gameState.lives <= 0) {
                 gameOver();
@@ -105,22 +111,50 @@ class Player {
             }
         }
 
-        // Collision avec les plateformes
-        this.checkPlatformCollisions();
+        // Note: Les collisions avec les plateformes sont maintenant gérées séparément
     }
 
-    checkPlatformCollisions() {
+    // Fonction supprimée : Plus de collision horizontale avec les plateformes
+    
+    checkVerticalPlatformCollisions() {
+        this.onGround = false; // Reset du statut onGround
+        
         for (let platform of platforms) {
+            // Vérifier collision verticale uniquement
             if (this.x < platform.x + platform.width &&
                 this.x + this.width > platform.x &&
                 this.y < platform.y + platform.height &&
                 this.y + this.height > platform.y) {
                 
-                // Collision par le haut
-                if (this.velocityY > 0 && this.y < platform.y) {
-                    this.y = platform.y - this.height;
-                    this.velocityY = 0;
+                if (this.velocityY > 0) {
+                    // Bob tombe, collision avec le haut de la plateforme
+                    // Vérifier que Bob vient bien du dessus
+                    if (this.y < platform.y) {
+                        this.y = platform.y - this.height;
+                        this.velocityY = 0;
+                        this.onGround = true;
+                    }
+                } else if (this.velocityY < 0) {
+                    // Bob saute, collision avec le bas de la plateforme
+                    // Vérifier que Bob vient bien du dessous
+                    if (this.y + this.height > platform.y + platform.height) {
+                        this.y = platform.y + platform.height;
+                        this.velocityY = 0;
+                    }
+                }
+            }
+        }
+        
+        // Vérifier si Bob est toujours sur une plateforme (pour l'état onGround)
+        if (!this.onGround) {
+            for (let platform of platforms) {
+                if (this.x < platform.x + platform.width &&
+                    this.x + this.width > platform.x &&
+                    this.y + this.height >= platform.y &&
+                    this.y + this.height <= platform.y + 5) { // Petite tolérance
+                    
                     this.onGround = true;
+                    break;
                 }
             }
         }
@@ -1013,20 +1047,20 @@ const levelConfigs = {
     1: {
         name: "Ghetto Uprising",
         platforms: [
-            new Platform(200, 500, 120, 20, '#FF0000'),
-            new Platform(400, 450, 120, 20, '#FFD700'),
-            new Platform(600, 400, 120, 20, '#008000'),
-            new Platform(150, 350, 120, 20, '#FF0000'),
-            new Platform(450, 300, 120, 20, '#FFD700'),
-            new Platform(100, 200, 120, 20, '#008000')
+            new Platform(200, 520, 120, 20, '#FF0000'),
+            new Platform(400, 480, 120, 20, '#FFD700'),
+            new Platform(600, 440, 120, 20, '#008000'),
+            new Platform(150, 400, 120, 20, '#FF0000'),
+            new Platform(450, 360, 120, 20, '#FFD700'),
+            new Platform(100, 320, 120, 20, '#008000')
         ],
         collectibles: [
-            new Collectible(230, 465),
-            new Collectible(430, 415),
-            new Collectible(630, 365),
-            new Collectible(180, 315),
-            new Collectible(480, 265),
-            new Collectible(130, 165)
+            new Collectible(230, 485),
+            new Collectible(430, 445),
+            new Collectible(630, 405),
+            new Collectible(180, 365),
+            new Collectible(480, 325),
+            new Collectible(130, 285)
         ],
         enemies: [
             new Enemy(300, canvas.height - 82, 'police'),
@@ -1036,17 +1070,17 @@ const levelConfigs = {
     2: {
         name: "Corporate Jungle",
         platforms: [
-            new Platform(100, 520, 100, 15, '#FFD700'),
-            new Platform(250, 480, 80, 15, '#FF0000'),
-            new Platform(380, 440, 100, 15, '#008000'),
-            new Platform(530, 400, 80, 15, '#FFD700'),
-            new Platform(50, 360, 120, 15, '#FF0000'),
-            new Platform(220, 320, 100, 15, '#008000'),
-            new Platform(370, 280, 80, 15, '#FFD700'),
-            new Platform(500, 240, 120, 15, '#FF0000'),
-            new Platform(150, 200, 100, 15, '#008000'),
-            new Platform(300, 160, 200, 15, '#FFD700'),
-            new Platform(600, 120, 100, 15, '#FF0000')
+            new Platform(100, 540, 100, 15, '#FFD700'),
+            new Platform(250, 510, 80, 15, '#FF0000'),
+            new Platform(380, 480, 100, 15, '#008000'),
+            new Platform(530, 450, 80, 15, '#FFD700'),
+            new Platform(50, 420, 120, 15, '#FF0000'),
+            new Platform(220, 390, 100, 15, '#008000'),
+            new Platform(370, 360, 80, 15, '#FFD700'),
+            new Platform(500, 330, 120, 15, '#FF0000'),
+            new Platform(150, 300, 100, 15, '#008000'),
+            new Platform(300, 270, 200, 15, '#FFD700'),
+            new Platform(600, 240, 100, 15, '#FF0000')
         ],
         collectibles: [
             new Collectible(130, 485),
@@ -1068,18 +1102,18 @@ const levelConfigs = {
     3: {
         name: "System's Stronghold",
         platforms: [
-            new Platform(50, 530, 80, 20, '#FF0000'),
-            new Platform(200, 490, 60, 20, '#FFD700'),
-            new Platform(320, 450, 80, 20, '#008000'),
-            new Platform(460, 410, 60, 20, '#FF0000'),
-            new Platform(580, 370, 80, 20, '#FFD700'),
-            new Platform(680, 330, 60, 20, '#008000'),
-            new Platform(30, 290, 100, 20, '#FF0000'),
-            new Platform(180, 250, 80, 20, '#FFD700'),
-            new Platform(320, 210, 100, 20, '#008000'),
-            new Platform(480, 170, 80, 20, '#FF0000'),
-            new Platform(620, 130, 100, 20, '#FFD700'),
-            new Platform(250, 90, 300, 20, '#008000')
+            new Platform(50, 550, 80, 20, '#FF0000'),
+            new Platform(200, 520, 60, 20, '#FFD700'),
+            new Platform(320, 490, 80, 20, '#008000'),
+            new Platform(460, 460, 60, 20, '#FF0000'),
+            new Platform(580, 430, 80, 20, '#FFD700'),
+            new Platform(680, 400, 60, 20, '#008000'),
+            new Platform(30, 370, 100, 20, '#FF0000'),
+            new Platform(180, 340, 80, 20, '#FFD700'),
+            new Platform(320, 310, 100, 20, '#008000'),
+            new Platform(480, 280, 80, 20, '#FF0000'),
+            new Platform(620, 250, 100, 20, '#FFD700'),
+            new Platform(250, 220, 300, 20, '#008000')
         ],
         collectibles: [
             new Collectible(70, 495),
@@ -1104,19 +1138,19 @@ const levelConfigs = {
     4: {
         name: "Babylon's Heights",
         platforms: [
-            new Platform(80, 540, 100, 15, '#FF0000'),
-            new Platform(220, 500, 80, 15, '#FFD700'),
-            new Platform(340, 460, 100, 15, '#008000'),
-            new Platform(480, 420, 80, 15, '#FF0000'),
-            new Platform(620, 380, 100, 15, '#FFD700'),
-            new Platform(120, 340, 80, 15, '#008000'),
-            new Platform(280, 300, 100, 15, '#FF0000'),
-            new Platform(420, 260, 80, 15, '#FFD700'),
-            new Platform(580, 220, 100, 15, '#008000'),
-            new Platform(200, 180, 120, 15, '#FF0000'),
-            new Platform(360, 140, 100, 15, '#FFD700'),
-            new Platform(520, 100, 120, 15, '#008000'),
-            new Platform(300, 60, 200, 15, '#FFD700')
+            new Platform(80, 550, 100, 15, '#FF0000'),
+            new Platform(220, 520, 80, 15, '#FFD700'),
+            new Platform(340, 490, 100, 15, '#008000'),
+            new Platform(480, 460, 80, 15, '#FF0000'),
+            new Platform(620, 430, 100, 15, '#FFD700'),
+            new Platform(120, 400, 80, 15, '#008000'),
+            new Platform(280, 370, 100, 15, '#FF0000'),
+            new Platform(420, 340, 80, 15, '#FFD700'),
+            new Platform(580, 310, 100, 15, '#008000'),
+            new Platform(200, 280, 120, 15, '#FF0000'),
+            new Platform(360, 250, 100, 15, '#FFD700'),
+            new Platform(520, 220, 120, 15, '#008000'),
+            new Platform(300, 190, 200, 15, '#FFD700')
         ],
         collectibles: [
             new Collectible(110, 505),
@@ -1142,23 +1176,23 @@ const levelConfigs = {
     5: {
         name: "Digital Oppression",
         platforms: [
-            new Platform(50, 550, 80, 10, '#FF0000'),
-            new Platform(170, 520, 60, 10, '#FFD700'),
-            new Platform(270, 490, 80, 10, '#008000'),
-            new Platform(390, 460, 60, 10, '#FF0000'),
-            new Platform(490, 430, 80, 10, '#FFD700'),
-            new Platform(610, 400, 60, 10, '#008000'),
-            new Platform(720, 370, 80, 10, '#FF0000'),
-            new Platform(80, 340, 60, 10, '#FFD700'),
-            new Platform(180, 310, 80, 10, '#008000'),
-            new Platform(300, 280, 60, 10, '#FF0000'),
-            new Platform(400, 250, 80, 10, '#FFD700'),
-            new Platform(520, 220, 60, 10, '#008000'),
-            new Platform(620, 190, 80, 10, '#FF0000'),
-            new Platform(250, 160, 100, 10, '#FFD700'),
-            new Platform(380, 130, 80, 10, '#008000'),
-            new Platform(500, 100, 100, 10, '#FF0000'),
-            new Platform(350, 70, 150, 10, '#FFD700')
+            new Platform(50, 560, 80, 10, '#FF0000'),
+            new Platform(170, 540, 60, 10, '#FFD700'),
+            new Platform(270, 520, 80, 10, '#008000'),
+            new Platform(390, 500, 60, 10, '#FF0000'),
+            new Platform(490, 480, 80, 10, '#FFD700'),
+            new Platform(610, 460, 60, 10, '#008000'),
+            new Platform(720, 440, 80, 10, '#FF0000'),
+            new Platform(80, 420, 60, 10, '#FFD700'),
+            new Platform(180, 400, 80, 10, '#008000'),
+            new Platform(300, 380, 60, 10, '#FF0000'),
+            new Platform(400, 360, 80, 10, '#FFD700'),
+            new Platform(520, 340, 60, 10, '#008000'),
+            new Platform(620, 320, 80, 10, '#FF0000'),
+            new Platform(250, 300, 100, 10, '#FFD700'),
+            new Platform(380, 280, 80, 10, '#008000'),
+            new Platform(500, 260, 100, 10, '#FF0000'),
+            new Platform(350, 240, 150, 10, '#FFD700')
         ],
         collectibles: [
             new Collectible(70, 515),
@@ -1189,33 +1223,33 @@ const levelConfigs = {
     6: {
         name: "Final Liberation",
         platforms: [
-            new Platform(40, 560, 60, 8, '#FF0000'),
-            new Platform(140, 540, 50, 8, '#FFD700'),
-            new Platform(230, 520, 60, 8, '#008000'),
-            new Platform(330, 500, 50, 8, '#FF0000'),
-            new Platform(420, 480, 60, 8, '#FFD700'),
-            new Platform(520, 460, 50, 8, '#008000'),
-            new Platform(610, 440, 60, 8, '#FF0000'),
-            new Platform(700, 420, 50, 8, '#FFD700'),
-            new Platform(60, 400, 50, 8, '#008000'),
-            new Platform(150, 380, 60, 8, '#FF0000'),
-            new Platform(250, 360, 50, 8, '#FFD700'),
-            new Platform(340, 340, 60, 8, '#008000'),
-            new Platform(440, 320, 50, 8, '#FF0000'),
-            new Platform(530, 300, 60, 8, '#FFD700'),
-            new Platform(630, 280, 50, 8, '#008000'),
-            new Platform(720, 260, 60, 8, '#FF0000'),
-            new Platform(120, 240, 80, 8, '#FFD700'),
-            new Platform(240, 220, 60, 8, '#008000'),
-            new Platform(340, 200, 80, 8, '#FF0000'),
-            new Platform(460, 180, 60, 8, '#FFD700'),
-            new Platform(560, 160, 80, 8, '#008000'),
-            new Platform(280, 140, 100, 8, '#FF0000'),
-            new Platform(420, 120, 80, 8, '#FFD700'),
-            new Platform(320, 100, 120, 8, '#008000'),
-            new Platform(200, 80, 200, 8, '#FFD700'),
-            new Platform(450, 60, 150, 8, '#FF0000'),
-            new Platform(300, 40, 250, 8, '#008000')
+            new Platform(40, 570, 60, 8, '#FF0000'),
+            new Platform(140, 555, 50, 8, '#FFD700'),
+            new Platform(230, 540, 60, 8, '#008000'),
+            new Platform(330, 525, 50, 8, '#FF0000'),
+            new Platform(420, 510, 60, 8, '#FFD700'),
+            new Platform(520, 495, 50, 8, '#008000'),
+            new Platform(610, 480, 60, 8, '#FF0000'),
+            new Platform(700, 465, 50, 8, '#FFD700'),
+            new Platform(60, 450, 50, 8, '#008000'),
+            new Platform(150, 435, 60, 8, '#FF0000'),
+            new Platform(250, 420, 50, 8, '#FFD700'),
+            new Platform(340, 405, 60, 8, '#008000'),
+            new Platform(440, 390, 50, 8, '#FF0000'),
+            new Platform(530, 375, 60, 8, '#FFD700'),
+            new Platform(630, 360, 50, 8, '#008000'),
+            new Platform(720, 345, 60, 8, '#FF0000'),
+            new Platform(120, 330, 80, 8, '#FFD700'),
+            new Platform(240, 315, 60, 8, '#008000'),
+            new Platform(340, 300, 80, 8, '#FF0000'),
+            new Platform(460, 285, 60, 8, '#FFD700'),
+            new Platform(560, 270, 80, 8, '#008000'),
+            new Platform(280, 255, 100, 8, '#FF0000'),
+            new Platform(420, 240, 80, 8, '#FFD700'),
+            new Platform(320, 225, 120, 8, '#008000'),
+            new Platform(200, 210, 200, 8, '#FFD700'),
+            new Platform(450, 195, 150, 8, '#FF0000'),
+            new Platform(300, 180, 250, 8, '#008000')
         ],
         collectibles: [
             new Collectible(60, 525),
@@ -1323,8 +1357,14 @@ document.addEventListener('keydown', (e) => {
     gameState.keys[e.key] = true;
     
     // Gestion du redémarrage
-    if (e.key.toLowerCase() === 'r' && (gameState.gameOver || gameState.finalVictory)) {
-        restart();
+    if (gameState.gameOver || gameState.finalVictory) {
+        if (e.key.toLowerCase() === 'r') {
+            // Reprendre au niveau maximum atteint
+            restart(gameState.maxLevelReached);
+        } else if (e.key.toLowerCase() === 't') {
+            // Recommencer depuis le niveau 1
+            restart(1);
+        }
     }
 });
 
@@ -1361,19 +1401,38 @@ function drawGameOver() {
     ctx.fillStyle = '#FF0000';
     ctx.font = '48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 80);
+    ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 100);
     
     ctx.fillStyle = '#FFD700';
     ctx.font = '24px Arial';
-    ctx.fillText('Bob Marley a été vaincu par Babylone !', canvas.width/2, canvas.height/2 - 30);
+    ctx.fillText('Bob Marley a été vaincu par Babylone !', canvas.width/2, canvas.height/2 - 50);
     
     ctx.fillStyle = '#FFD700';
     ctx.font = '24px Arial';
-    ctx.fillText('Score Final: ' + gameState.score, canvas.width/2, canvas.height/2 + 20);
+    ctx.fillText('Score Final: ' + gameState.score, canvas.width/2, canvas.height/2 - 10);
     
-    ctx.fillStyle = '#008000';
-    ctx.font = '18px Arial';
-    ctx.fillText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 60);
+    // Afficher les options selon le niveau atteint
+    if (gameState.maxLevelReached > 1) {
+        ctx.fillStyle = '#008000';
+        ctx.font = '20px Arial';
+        ctx.fillText('Options de redémarrage :', canvas.width/2, canvas.height/2 + 40);
+        
+        ctx.fillStyle = '#32CD32';
+        ctx.font = '18px Arial';
+        ctx.fillText(`R - Reprendre au Niveau ${gameState.maxLevelReached}`, canvas.width/2, canvas.height/2 + 70);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '18px Arial';
+        ctx.fillText('T - Recommencer au Niveau 1', canvas.width/2, canvas.height/2 + 100);
+        
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '14px Arial';
+        ctx.fillText('JAH BLESS ! Continue la lutte !', canvas.width/2, canvas.height/2 + 130);
+    } else {
+        ctx.fillStyle = '#008000';
+        ctx.font = '18px Arial';
+        ctx.fillText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 60);
+    }
 }
 
 // Fonction de victoire
@@ -1390,6 +1449,10 @@ function checkWin() {
     let allCollected = collectibles.every(c => c.collected);
     if (allCollected) {
         gameState.level++;
+        // Mettre à jour le niveau maximum atteint
+        if (gameState.level > gameState.maxLevelReached) {
+            gameState.maxLevelReached = gameState.level;
+        }
         updateLevel();
         
         // Vérifier s'il y a un niveau suivant
@@ -1503,17 +1566,21 @@ function drawFinalVictory() {
     ctx.font = '18px Arial';
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 1;
-    ctx.strokeText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 220);
-    ctx.fillText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 220);
+    ctx.strokeText('R - Rejouer | T - Recommencer depuis le début', canvas.width/2, canvas.height/2 + 220);
+    ctx.fillText('R - Rejouer | T - Recommencer depuis le début', canvas.width/2, canvas.height/2 + 220);
 }
 
 // Fonction de redémarrage
-function restart() {
+function restart(startLevel = 1) {
+    // Sauvegarder le niveau maximum atteint
+    let savedMaxLevel = gameState.maxLevelReached;
+    
     // Remettre l'état du jeu à zéro
     gameState = {
         score: 0,
         lives: 3,
-        level: 1,
+        level: startLevel,
+        maxLevelReached: savedMaxLevel,
         gameRunning: true,
         keys: {},
         gameOver: false,
@@ -1522,8 +1589,8 @@ function restart() {
         deathMessageTimer: 0
     };
     
-    // Recharger le premier niveau
-    loadLevel(1);
+    // Recharger le niveau spécifié
+    loadLevel(startLevel);
     
     // Remettre le joueur à sa position d'origine
     player.x = 50;
