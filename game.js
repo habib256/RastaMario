@@ -807,8 +807,8 @@ class Boss {
         this.y = y;
         this.initialX = x;
         this.initialY = y;
-        this.width = 80;
-        this.height = 100;
+        this.width = 120;  // 80 * 1.5 = 120
+        this.height = 150; // 100 * 1.5 = 150
         this.health = 5;
         this.maxHealth = 5;
         this.velocityX = 2;
@@ -1383,7 +1383,7 @@ const levelConfigs = {
             new Collectible(380, 165)
         ],
         enemies: [], // Pas d'ennemis normaux, seulement le boss
-        boss: new Boss(canvas.width / 2 - 40, canvas.height - 150)
+        boss: new Boss(canvas.width / 2 - 60, canvas.height - 200) // Ajusté pour la nouvelle taille
     }
 };
 
