@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rasta Mario - Jeu de Plateforme</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2E7D32, #4CAF50, #81C784);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #gameContainer {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        #gameCanvas {
+            border: 3px solid #FFD700;
+            border-radius: 10px;
+            background: #87CEEB;
+        }
+        
+        #gameInfo {
+            color: #FFD700;
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        #controls {
+            color: #FFF;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        h1 {
+            color: #FFD700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .rasta-text {
+            background: linear-gradient(45deg, #FF0000, #FFD700, #008000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1 class="rasta-text">🎮 Rasta Mario Adventure 🎮</h1>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="gameInfo">
+            <span>Personnage: <span id="characterName">Bob Marley</span></span> | 
+            <span>Score: <span id="score">0</span></span> | 
+            <span>Vies: <span id="lives">3</span></span> | 
+            <span>Niveau: <span id="level">1</span></span> | 
+            <span id="levelName">Ghetto Uprising</span>
+        </div>
+        <div id="controls">
+            🎯 Contrôles: Flèches ← → pour bouger | Espace pour sauter | Collecte les 🍃 ganja !<br>
+            🎪 Objectif: Libère Jah People du système oppressif de Babylone !
+        </div>
+    </div>
+    
+    <script src="game.js"></script>
+</body>
+</html> 
