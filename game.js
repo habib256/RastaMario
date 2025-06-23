@@ -33,7 +33,10 @@ let gameState = {
     gameOver: false,
     finalVictory: false,
     deathMessage: '',
-    deathMessageTimer: 0
+    deathMessageTimer: 0,
+    levelChangeMessage: '',
+    levelChangeTimer: 0,
+    gamePaused: false
 };
 
 
@@ -776,8 +779,8 @@ class Boss {
         this.initialY = y;
         this.width = 80;
         this.height = 100;
-        this.health = 10;
-        this.maxHealth = 10;
+        this.health = 5;
+        this.maxHealth = 5;
         this.velocityX = 2;
         this.velocityY = 0;
         this.alive = true;
@@ -1029,12 +1032,14 @@ class Boss {
         ctx.fillStyle = barColor;
         ctx.fillRect(canvas.width / 2 - 148, 32, (300 - 4) * healthPercent, 16);
         
-        // Texte
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '16px Arial';
+        // Nom du boss bien visible en dessous
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('ROI DE BABYLONE', canvas.width / 2, 25);
-        ctx.fillText(`${this.health}/${this.maxHealth}`, canvas.width / 2, 65);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.strokeText('ROI DE BABYLONE', canvas.width / 2, 70);
+        ctx.fillText('ROI DE BABYLONE', canvas.width / 2, 70);
     }
 }
 
@@ -1319,7 +1324,7 @@ const levelConfigs = {
         ]
     },
     7: {
-        name: "Confrontation Finale - Roi de Babylone",
+        name: "Roi de Babylone",
         platforms: [
             new Platform(100, 500, 600, 20, '#8B0000'),
             new Platform(50, 400, 150, 15, '#FF0000'),
@@ -1486,33 +1491,11 @@ function checkWin() {
         
         // Vérifier s'il y a un niveau suivant
         if (loadLevel(gameState.level)) {
-            // Afficher le message de niveau
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '36px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('NIVEAU ' + gameState.level + '!', canvas.width/2, canvas.height/2 - 40);
-            
-            // Afficher le nom du niveau
+            // Préparer le message de changement de niveau
             const levelName = levelConfigs[gameState.level]?.name || 'Niveau Inconnu';
-            ctx.fillStyle = '#32CD32';
-            ctx.font = '24px Arial';
-            ctx.fillText(levelName, canvas.width/2, canvas.height/2 + 10);
-            
-            // Message motivant
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '18px Arial';
-            if (gameState.level === 7) {
-                ctx.fillText('Affronte le Roi de Babylone !', canvas.width/2, canvas.height/2 + 50);
-            } else {
-                ctx.fillText('Libère Jah People du système Babylone !', canvas.width/2, canvas.height/2 + 50);
-            }
-            
-            setTimeout(() => {
-                // Continue le jeu après 5 secondes
-            }, 5000);
+            gameState.levelChangeMessage = `NIVEAU ${gameState.level} - ${levelName}`;
+            gameState.levelChangeTimer = 360; // 6 secondes à 60fps
+            gameState.gamePaused = true;
         } else {
             // Victoire finale (ne devrait pas arriver avec le boss)
             showFinalVictory();
@@ -1615,7 +1598,10 @@ function restart(startLevel = 1) {
         gameOver: false,
         finalVictory: false,
         deathMessage: '',
-        deathMessageTimer: 0
+        deathMessageTimer: 0,
+        levelChangeMessage: '',
+        levelChangeTimer: 0,
+        gamePaused: false
     };
     
     // Recharger le niveau spécifié
@@ -1711,29 +1697,86 @@ function gameLoop() {
         
         // Mettre à jour et dessiner les collectibles
         collectibles.forEach(collectible => {
-            collectible.update();
+            if (!gameState.gamePaused) {
+                collectible.update();
+            }
             collectible.draw();
         });
         
         // Mettre à jour et dessiner les ennemis
         enemies.forEach(enemy => {
-            enemy.update();
+            if (!gameState.gamePaused) {
+                enemy.update();
+            }
             enemy.draw();
         });
         
         // Mettre à jour et dessiner le boss s'il existe
         if (boss) {
-            boss.update();
+            if (!gameState.gamePaused) {
+                boss.update();
+            }
             boss.draw();
         }
         
         // Mettre à jour et dessiner le joueur
-        player.update();
+        if (!gameState.gamePaused) {
+            player.update();
+        }
         player.draw();
         
         // Mettre à jour le timer du message de mort
         if (gameState.deathMessageTimer > 0) {
             gameState.deathMessageTimer--;
+        }
+        
+        // Mettre à jour le timer du message de changement de niveau
+        if (gameState.levelChangeTimer > 0) {
+            gameState.levelChangeTimer--;
+            if (gameState.levelChangeTimer <= 0) {
+                gameState.gamePaused = false;
+                gameState.levelChangeMessage = '';
+            }
+        }
+        
+        // Afficher le message de changement de niveau
+        if (gameState.levelChangeTimer > 0) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeText(gameState.levelChangeMessage, canvas.width/2, canvas.height/2 - 60);
+            ctx.fillText(gameState.levelChangeMessage, canvas.width/2, canvas.height/2 - 60);
+            
+            // Message motivant
+            ctx.fillStyle = '#32CD32';
+            ctx.font = 'bold 28px Arial';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            if (gameState.level === 7) {
+                ctx.strokeText('Affronte le Roi de Babylone !', canvas.width/2, canvas.height/2 + 20);
+                ctx.fillText('Affronte le Roi de Babylone !', canvas.width/2, canvas.height/2 + 20);
+            } else {
+                ctx.strokeText('Libère toi du système oppressif de Babylone !', canvas.width/2, canvas.height/2 + 20);
+                ctx.fillText('Libère toi du système oppressif de Babylone !', canvas.width/2, canvas.height/2 + 20);
+            }
+            
+            // Message rastafari
+            ctx.fillStyle = '#FF0000';
+            ctx.font = 'bold 20px Arial';
+            ctx.strokeText('JAH BLESS ! ONE LOVE !', canvas.width/2, canvas.height/2 + 80);
+            ctx.fillText('JAH BLESS ! ONE LOVE !', canvas.width/2, canvas.height/2 + 80);
+            
+            // Compteur de temps restant
+            let secondsLeft = Math.ceil(gameState.levelChangeTimer / 60);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '18px Arial';
+            ctx.strokeText(`Début dans ${secondsLeft} secondes...`, canvas.width/2, canvas.height/2 + 120);
+            ctx.fillText(`Début dans ${secondsLeft} secondes...`, canvas.width/2, canvas.height/2 + 120);
         }
         
         // Afficher le message de mort s'il y en a un
@@ -1747,8 +1790,10 @@ function gameLoop() {
             ctx.fillText(gameState.deathMessage, canvas.width/2, 100);
         }
         
-        // Vérifier la victoire
-        checkWin();
+        // Vérifier la victoire seulement si le jeu n'est pas en pause
+        if (!gameState.gamePaused) {
+            checkWin();
+        }
     }
     
     // Continuer la boucle
