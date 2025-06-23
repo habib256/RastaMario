@@ -10,6 +10,15 @@ bobImage.src = 'bob.png';
 const babylonImage = new Image();
 babylonImage.src = 'babylon.png';
 
+const banquierImage = new Image();
+banquierImage.src = 'banquier.png';
+
+const politicienImage = new Image();
+politicienImage.src = 'politicien.png';
+
+const jugeImage = new Image();
+jugeImage.src = 'juge.png';
+
 // Variables globales du jeu
 let gameState = {
     score: 0,
@@ -146,6 +155,12 @@ class Collectible {
         this.bounce = 0;
         this.shimmer = 0;
     }
+    
+    reset() {
+        this.collected = false;
+        this.bounce = 0;
+        this.shimmer = 0;
+    }
 
     update() {
         this.bounce += 0.08;
@@ -252,11 +267,22 @@ class Enemy {
     constructor(x, y, type = 'police') {
         this.x = x;
         this.y = y;
+        this.initialX = x; // Position initiale X
+        this.initialY = y; // Position initiale Y
         this.width = 28;
         this.height = 32;
         this.velocityX = 1.5;
+        this.initialVelocityX = 1.5; // Vitesse initiale
         this.alive = true;
-        this.type = type; // 'police', 'politician', 'corporate'
+        this.type = type; // 'police', 'politician', 'corporate', 'juge'
+        this.animationFrame = 0;
+    }
+    
+    reset() {
+        this.x = this.initialX;
+        this.y = this.initialY;
+        this.velocityX = this.initialVelocityX;
+        this.alive = true;
         this.animationFrame = 0;
     }
 
@@ -325,9 +351,71 @@ class Enemy {
                 this.drawPolice();
             }
         } else if (this.type === 'politician') {
-            this.drawPolitician();
+            // Utiliser l'image politicien.png pour les politiciens
+            if (politicienImage.complete) {
+                // Augmenter la taille du politicien de 40%
+                let politicienWidth = this.width * 1.4;
+                let politicienHeight = this.height * 1.4;
+                let offsetX = (politicienWidth - this.width) / 2;
+                let offsetY = (politicienHeight - this.height) / 2;
+                
+                // Flip horizontal selon la direction
+                if (this.velocityX < 0) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(politicienImage, -this.x - politicienWidth + offsetX, this.y - offsetY, politicienWidth, politicienHeight);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(politicienImage, this.x - offsetX, this.y - offsetY, politicienWidth, politicienHeight);
+                }
+            } else {
+                // Fallback si l'image n'est pas chargée
+                this.drawPolitician();
+            }
         } else if (this.type === 'corporate') {
-            this.drawCorporate();
+            // Utiliser l'image banquier.png pour les banquiers/corporate
+            if (banquierImage.complete) {
+                // Augmenter la taille du banquier de 35%
+                let banquierWidth = this.width * 1.35;
+                let banquierHeight = this.height * 1.35;
+                let offsetX = (banquierWidth - this.width) / 2;
+                let offsetY = (banquierHeight - this.height) / 2;
+                
+                // Flip horizontal selon la direction
+                if (this.velocityX < 0) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(banquierImage, -this.x - banquierWidth + offsetX, this.y - offsetY, banquierWidth, banquierHeight);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(banquierImage, this.x - offsetX, this.y - offsetY, banquierWidth, banquierHeight);
+                }
+            } else {
+                // Fallback si l'image n'est pas chargée
+                this.drawCorporate();
+            }
+        } else if (this.type === 'juge') {
+            // Utiliser l'image juge.png pour les juges
+            if (jugeImage.complete) {
+                // Augmenter la taille du juge de 45% (plus imposant que les autres)
+                let jugeWidth = this.width * 1.45;
+                let jugeHeight = this.height * 1.45;
+                let offsetX = (jugeWidth - this.width) / 2;
+                let offsetY = (jugeHeight - this.height) / 2;
+                
+                // Flip horizontal selon la direction
+                if (this.velocityX < 0) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(jugeImage, -this.x - jugeWidth + offsetX, this.y - offsetY, jugeWidth, jugeHeight);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(jugeImage, this.x - offsetX, this.y - offsetY, jugeWidth, jugeHeight);
+                }
+            } else {
+                // Fallback si l'image n'est pas chargée
+                this.drawJuge();
+            }
         }
     }
     
@@ -484,6 +572,81 @@ class Enemy {
         ctx.fillRect(this.x + 8, this.y + 30, 5, 2);
         ctx.fillRect(this.x + 15, this.y + 30, 5, 2);
     }
+    
+    drawJuge() {
+        // Robe noire de juge
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x + 4, this.y + 12, 20, 20);
+        
+        // Col blanc de la robe
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(this.x + 10, this.y + 12, 8, 4);
+        
+        // Tête
+        ctx.fillStyle = '#FDBCB4';
+        ctx.fillRect(this.x + 8, this.y + 2, 12, 12);
+        
+        // Perruque blanche poudrée (symbole de l'ancien système judiciaire)
+        ctx.fillStyle = '#F5F5F5';
+        ctx.fillRect(this.x + 6, this.y, 16, 6);
+        // Boucles de la perruque
+        ctx.beginPath();
+        ctx.arc(this.x + 6, this.y + 3, 3, 0, 2 * Math.PI);
+        ctx.arc(this.x + 22, this.y + 3, 3, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        // Yeux sévères et froids
+        ctx.fillStyle = '#4682B4'; // Bleu acier
+        ctx.fillRect(this.x + 10, this.y + 6, 2, 2);
+        ctx.fillRect(this.x + 16, this.y + 6, 2, 2);
+        
+        // Sourcils froncés
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(this.x + 9, this.y + 5, 4, 1);
+        ctx.fillRect(this.x + 15, this.y + 5, 4, 1);
+        
+        // Bouche sévère
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x + 11, this.y + 10, 6, 1);
+        
+        // Marteau de juge (symbole du pouvoir judiciaire)
+        if (Math.sin(this.animationFrame) > 0) {
+            // Manche du marteau
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(this.x + 24, this.y + 8, 2, 12);
+            
+            // Tête du marteau
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(this.x + 22, this.y + 6, 6, 4);
+        }
+        
+        // Balance de la justice (corrompue)
+        ctx.strokeStyle = '#FFD700';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        // Bras de la balance
+        ctx.moveTo(this.x - 2, this.y + 10);
+        ctx.lineTo(this.x + 6, this.y + 10);
+        // Plateaux déséquilibrés (justice biaisée)
+        ctx.arc(this.x - 2, this.y + 12, 2, 0, Math.PI, true);
+        ctx.arc(this.x + 6, this.y + 14, 2, 0, Math.PI, true);
+        ctx.stroke();
+        
+        // Jambes de la robe
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x + 8, this.y + 25, 5, 7);
+        ctx.fillRect(this.x + 15, this.y + 25, 5, 7);
+        
+        // Chaussures noires formelles
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x + 8, this.y + 30, 5, 2);
+        ctx.fillRect(this.x + 15, this.y + 30, 5, 2);
+        
+        // Symbole du dollar flottant (corruption du système judiciaire)
+        ctx.fillStyle = '#DC143C'; // Rouge sang
+        ctx.font = '10px Arial';
+        ctx.fillText('§', this.x + this.width + 5, this.y + 8);
+    }
 }
 
 // Système de niveaux avec différents parcours
@@ -508,7 +671,8 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(300, canvas.height - 82, 'police'),
-            new Enemy(500, 418, 'police')
+            new Enemy(500, 418, 'juge'),
+            new Enemy(650, canvas.height - 82, 'corporate')
         ]
     },
     2: {
@@ -541,7 +705,8 @@ const levelConfigs = {
         enemies: [
             new Enemy(350, canvas.height - 82, 'corporate'),
             new Enemy(150, 488, 'politician'),
-            new Enemy(450, 408, 'corporate')
+            new Enemy(450, 408, 'juge'),
+            new Enemy(600, 368, 'corporate')
         ]
     },
     3: {
@@ -577,9 +742,10 @@ const levelConfigs = {
         enemies: [
             new Enemy(400, canvas.height - 82, 'police'),
             new Enemy(100, 498, 'politician'),
-            new Enemy(350, 418, 'corporate'),
-            new Enemy(500, 338, 'police'),
-            new Enemy(150, 218, 'politician')
+            new Enemy(350, 418, 'juge'),
+            new Enemy(500, 338, 'corporate'),
+            new Enemy(150, 218, 'juge'),
+            new Enemy(600, 288, 'corporate')
         ]
     },
     4: {
@@ -616,12 +782,13 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(200, canvas.height - 82, 'police'),
-            new Enemy(120, 508, 'corporate'),
-            new Enemy(380, 428, 'politician'),
+            new Enemy(120, 508, 'juge'),
+            new Enemy(380, 428, 'corporate'),
             new Enemy(520, 388, 'police'),
-            new Enemy(180, 308, 'corporate'),
-            new Enemy(450, 228, 'politician'),
-            new Enemy(330, 108, 'police')
+            new Enemy(180, 308, 'juge'),
+            new Enemy(450, 228, 'corporate'),
+            new Enemy(330, 108, 'juge'),
+            new Enemy(650, 338, 'corporate')
         ]
     },
     5: {
@@ -668,12 +835,13 @@ const levelConfigs = {
             new Enemy(300, canvas.height - 82, 'corporate'),
             new Enemy(600, canvas.height - 82, 'police'),
             new Enemy(90, 518, 'politician'),
-            new Enemy(310, 458, 'corporate'),
-            new Enemy(530, 398, 'police'),
+            new Enemy(310, 458, 'juge'),
+            new Enemy(530, 398, 'corporate'),
             new Enemy(200, 278, 'politician'),
-            new Enemy(440, 218, 'corporate'),
-            new Enemy(380, 98, 'police'),
-            new Enemy(450, 38, 'politician')
+            new Enemy(440, 218, 'juge'),
+            new Enemy(380, 98, 'corporate'),
+            new Enemy(450, 38, 'juge'),
+            new Enemy(650, 318, 'corporate')
         ]
     },
     6: {
@@ -741,22 +909,24 @@ const levelConfigs = {
             new Enemy(500, canvas.height - 82, 'corporate'),
             new Enemy(700, canvas.height - 82, 'politician'),
             new Enemy(70, 528, 'police'),
-            new Enemy(170, 508, 'corporate'),
-            new Enemy(270, 488, 'politician'),
+            new Enemy(170, 508, 'juge'),
+            new Enemy(270, 488, 'corporate'),
             new Enemy(370, 468, 'police'),
-            new Enemy(470, 448, 'corporate'),
-            new Enemy(570, 428, 'politician'),
+            new Enemy(470, 448, 'juge'),
+            new Enemy(570, 428, 'corporate'),
             new Enemy(80, 368, 'police'),
-            new Enemy(180, 348, 'corporate'),
-            new Enemy(280, 328, 'politician'),
+            new Enemy(180, 348, 'juge'),
+            new Enemy(280, 328, 'corporate'),
             new Enemy(380, 308, 'police'),
-            new Enemy(480, 288, 'corporate'),
-            new Enemy(580, 268, 'politician'),
+            new Enemy(480, 288, 'juge'),
+            new Enemy(580, 268, 'corporate'),
             new Enemy(160, 208, 'police'),
-            new Enemy(380, 168, 'corporate'),
-            new Enemy(340, 108, 'politician'),
+            new Enemy(380, 168, 'juge'),
+            new Enemy(340, 108, 'corporate'),
             new Enemy(380, 68, 'police'),
-            new Enemy(450, 28, 'corporate')
+            new Enemy(450, 28, 'juge'),
+            new Enemy(600, 388, 'corporate'),
+            new Enemy(720, 268, 'corporate')
         ]
     }
 };
@@ -916,6 +1086,7 @@ function checkWin() {
 
 // Fonction de redémarrage
 function restart() {
+    // Remettre l'état du jeu à zéro
     gameState = {
         score: 0,
         lives: 3,
@@ -928,6 +1099,25 @@ function restart() {
     // Recharger le premier niveau
     loadLevel(1);
     
+    // Remettre le joueur à sa position d'origine
+    player.x = 50;
+    player.y = canvas.height - 100;
+    player.velocityX = 0;
+    player.velocityY = 0;
+    player.onGround = false;
+    player.direction = 'right';
+    
+    // Remettre tous les ennemis à leur position d'origine
+    enemies.forEach(enemy => {
+        enemy.reset();
+    });
+    
+    // Remettre tous les collectibles à leur état d'origine
+    collectibles.forEach(collectible => {
+        collectible.reset();
+    });
+    
+    // Mettre à jour l'interface
     updateScore();
     updateLives();
     updateLevel();
