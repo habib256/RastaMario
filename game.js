@@ -56,6 +56,7 @@ class Player {
         this.direction = 'right';
         this.spacePressed = false;
         this.spaceTimer = 0;
+        this.walkAnimation = 0;
     }
 
     update() {
@@ -116,6 +117,11 @@ class Player {
         // Mise à jour de la position verticale
         this.y += this.velocityY;
         this.checkVerticalPlatformCollisions();
+
+        // Animation de marche (seulement au sol)
+        if (this.velocityX !== 0 && this.onGround) {
+            this.walkAnimation += 0.3;
+        }
 
         // Limites de l'écran
         if (this.x < 0) this.x = 0;
@@ -192,22 +198,37 @@ class Player {
     }
 
     draw() {
+        ctx.save();
+        
+        // Calculer l'angle de balancement pour la marche (seulement au sol)
+        let walkAngle = 0;
+        if (this.velocityX !== 0 && this.onGround) {
+            walkAngle = Math.sin(this.walkAnimation) * 0.1; // Balancement léger
+        }
+        
+        // Centrer la rotation sur le centre du personnage
+        let centerX = this.x + this.width / 2;
+        let centerY = this.y + this.height / 2;
+        
+        ctx.translate(centerX, centerY);
+        ctx.rotate(walkAngle);
+        
         // Dessiner l'image de Bob
         if (bobImage.complete) {
             // Flip horizontal si le personnage va vers la gauche
             if (this.direction === 'left') {
-                ctx.save();
                 ctx.scale(-1, 1);
-                ctx.drawImage(bobImage, -this.x - this.width, this.y, this.width, this.height);
-                ctx.restore();
+                ctx.drawImage(bobImage, -this.width / 2, -this.height / 2, this.width, this.height);
             } else {
-                ctx.drawImage(bobImage, this.x, this.y, this.width, this.height);
+                ctx.drawImage(bobImage, -this.width / 2, -this.height / 2, this.width, this.height);
             }
         } else {
             // Fallback: rectangle coloré si l'image n'est pas encore chargée
             ctx.fillStyle = '#8B4513';
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
         }
+        
+        ctx.restore();
     }
 }
 
@@ -364,6 +385,7 @@ class Enemy {
         this.alive = true;
         this.type = type; // 'police', 'politician', 'corporate', 'juge'
         this.animationFrame = 0;
+        this.walkAnimation = 0;
     }
     
     reset() {
@@ -372,6 +394,7 @@ class Enemy {
         this.velocityX = this.initialVelocityX;
         this.alive = true;
         this.animationFrame = 0;
+        this.walkAnimation = 0;
     }
 
     update() {
@@ -379,6 +402,7 @@ class Enemy {
         
         this.x += this.velocityX;
         this.animationFrame += 0.1;
+        this.walkAnimation += 0.25; // Animation de marche
         
         // Rebond sur les bords et plateformes
         if (this.x <= 0 || this.x + this.width >= canvas.width) {
@@ -449,27 +473,37 @@ class Enemy {
     draw() {
         if (!this.alive) return;
         
+        ctx.save();
+        
+        // Calculer l'angle de balancement pour la marche
+        let walkAngle = Math.sin(this.walkAnimation) * 0.08; // Balancement léger pour les ennemis
+        
+        // Centrer la rotation sur le centre de l'ennemi
+        let centerX = this.x + this.width / 2;
+        let centerY = this.y + this.height / 2;
+        
+        ctx.translate(centerX, centerY);
+        ctx.rotate(walkAngle);
+        
         if (this.type === 'police') {
             // Utiliser l'image babylon.png pour les flics
             if (babylonImage.complete) {
                 // Augmenter la taille du policier de 20%
                 let policerWidth = this.width * 1.2;
                 let policerHeight = this.height * 1.2;
-                let offsetX = (policerWidth - this.width) / 2;
-                let offsetY = (policerHeight - this.height) / 2;
                 
                 // Flip horizontal selon la direction
                 if (this.velocityX < 0) {
-                    ctx.save();
                     ctx.scale(-1, 1);
-                    ctx.drawImage(babylonImage, -this.x - policerWidth + offsetX, this.y - offsetY, policerWidth, policerHeight);
-                    ctx.restore();
+                    ctx.drawImage(babylonImage, -policerWidth / 2, -policerHeight / 2, policerWidth, policerHeight);
                 } else {
-                    ctx.drawImage(babylonImage, this.x - offsetX, this.y - offsetY, policerWidth, policerHeight);
+                    ctx.drawImage(babylonImage, -policerWidth / 2, -policerHeight / 2, policerWidth, policerHeight);
                 }
             } else {
                 // Fallback si l'image n'est pas chargée
+                ctx.restore();
                 this.drawPolice();
+                return;
             }
         } else if (this.type === 'politician') {
             // Utiliser l'image politicien.png pour les politiciens
@@ -477,21 +511,19 @@ class Enemy {
                 // Augmenter la taille du politicien de 40%
                 let politicienWidth = this.width * 1.4;
                 let politicienHeight = this.height * 1.4;
-                let offsetX = (politicienWidth - this.width) / 2;
-                let offsetY = (politicienHeight - this.height) / 2;
                 
                 // Flip horizontal selon la direction
                 if (this.velocityX < 0) {
-                    ctx.save();
                     ctx.scale(-1, 1);
-                    ctx.drawImage(politicienImage, -this.x - politicienWidth + offsetX, this.y - offsetY, politicienWidth, politicienHeight);
-                    ctx.restore();
+                    ctx.drawImage(politicienImage, -politicienWidth / 2, -politicienHeight / 2, politicienWidth, politicienHeight);
                 } else {
-                    ctx.drawImage(politicienImage, this.x - offsetX, this.y - offsetY, politicienWidth, politicienHeight);
+                    ctx.drawImage(politicienImage, -politicienWidth / 2, -politicienHeight / 2, politicienWidth, politicienHeight);
                 }
             } else {
                 // Fallback si l'image n'est pas chargée
+                ctx.restore();
                 this.drawPolitician();
+                return;
             }
         } else if (this.type === 'corporate') {
             // Utiliser l'image banquier.png pour les banquiers/corporate
@@ -499,21 +531,19 @@ class Enemy {
                 // Augmenter la taille du banquier de 35%
                 let banquierWidth = this.width * 1.35;
                 let banquierHeight = this.height * 1.35;
-                let offsetX = (banquierWidth - this.width) / 2;
-                let offsetY = (banquierHeight - this.height) / 2;
                 
                 // Flip horizontal selon la direction
                 if (this.velocityX < 0) {
-                    ctx.save();
                     ctx.scale(-1, 1);
-                    ctx.drawImage(banquierImage, -this.x - banquierWidth + offsetX, this.y - offsetY, banquierWidth, banquierHeight);
-                    ctx.restore();
+                    ctx.drawImage(banquierImage, -banquierWidth / 2, -banquierHeight / 2, banquierWidth, banquierHeight);
                 } else {
-                    ctx.drawImage(banquierImage, this.x - offsetX, this.y - offsetY, banquierWidth, banquierHeight);
+                    ctx.drawImage(banquierImage, -banquierWidth / 2, -banquierHeight / 2, banquierWidth, banquierHeight);
                 }
             } else {
                 // Fallback si l'image n'est pas chargée
+                ctx.restore();
                 this.drawCorporate();
+                return;
             }
         } else if (this.type === 'juge') {
             // Utiliser l'image juge.png pour les juges
@@ -521,23 +551,23 @@ class Enemy {
                 // Augmenter la taille du juge de 45% (plus imposant que les autres)
                 let jugeWidth = this.width * 1.45;
                 let jugeHeight = this.height * 1.45;
-                let offsetX = (jugeWidth - this.width) / 2;
-                let offsetY = (jugeHeight - this.height) / 2;
                 
                 // Flip horizontal selon la direction
                 if (this.velocityX < 0) {
-                    ctx.save();
                     ctx.scale(-1, 1);
-                    ctx.drawImage(jugeImage, -this.x - jugeWidth + offsetX, this.y - offsetY, jugeWidth, jugeHeight);
-                    ctx.restore();
+                    ctx.drawImage(jugeImage, -jugeWidth / 2, -jugeHeight / 2, jugeWidth, jugeHeight);
                 } else {
-                    ctx.drawImage(jugeImage, this.x - offsetX, this.y - offsetY, jugeWidth, jugeHeight);
+                    ctx.drawImage(jugeImage, -jugeWidth / 2, -jugeHeight / 2, jugeWidth, jugeHeight);
                 }
             } else {
                 // Fallback si l'image n'est pas chargée
+                ctx.restore();
                 this.drawJuge();
+                return;
             }
         }
+        
+        ctx.restore();
     }
     
     drawPolice() {
@@ -790,12 +820,14 @@ class Boss {
         this.hitTimer = 0;
         this.projectiles = [];
         this.isAngry = false;
+        this.walkAnimation = 0;
     }
 
     update() {
         if (!this.alive) return;
         
         this.animationFrame += 0.1;
+        this.walkAnimation += 0.2; // Animation de marche du boss
         
         // Phases du boss selon sa santé
         if (this.health <= 3 && this.phase < 3) {
@@ -931,35 +963,45 @@ class Boss {
         this.hitTimer = 0;
         this.projectiles = [];
         this.isAngry = false;
+        this.walkAnimation = 0;
     }
     
     draw() {
         if (!this.alive) return;
         
+        ctx.save();
+        
         // Effet de hit
         if (this.hitTimer > 0 && Math.floor(this.hitTimer / 5) % 2) {
-            ctx.save();
             ctx.globalAlpha = 0.5;
         }
+        
+        // Calculer l'angle de balancement pour la marche du boss
+        let walkAngle = Math.sin(this.walkAnimation) * 0.05; // Balancement plus subtil pour le boss
+        
+        // Centrer la rotation sur le centre du boss
+        let centerX = this.x + this.width / 2;
+        let centerY = this.y + this.height / 2;
+        
+        ctx.translate(centerX, centerY);
+        ctx.rotate(walkAngle);
         
         if (bossImage.complete) {
             // Flip horizontal selon la direction
             if (this.velocityX < 0) {
-                ctx.save();
                 ctx.scale(-1, 1);
-                ctx.drawImage(bossImage, -this.x - this.width, this.y, this.width, this.height);
-                ctx.restore();
+                ctx.drawImage(bossImage, -this.width / 2, -this.height / 2, this.width, this.height);
             } else {
-                ctx.drawImage(bossImage, this.x, this.y, this.width, this.height);
+                ctx.drawImage(bossImage, -this.width / 2, -this.height / 2, this.width, this.height);
             }
         } else {
             // Fallback: Dessin du Roi de Babylone
+            ctx.restore();
             this.drawBossArt();
+            ctx.save();
         }
         
-        if (this.hitTimer > 0) {
-            ctx.restore();
-        }
+        ctx.restore();
         
         // Barre de vie du boss
         this.drawHealthBar();
@@ -1616,6 +1658,7 @@ function restart(startLevel = 1) {
     player.direction = 'right';
     player.spacePressed = false;
     player.spaceTimer = 0;
+    player.walkAnimation = 0;
     
     // Remettre tous les ennemis à leur position d'origine
     enemies.forEach(enemy => {
