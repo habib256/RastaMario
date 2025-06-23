@@ -3,9 +3,12 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Chargement de l'image Bob
+// Chargement des images
 const bobImage = new Image();
 bobImage.src = 'bob.png';
+
+const babylonImage = new Image();
+babylonImage.src = 'babylon.png';
 
 // Variables globales du jeu
 let gameState = {
@@ -299,11 +302,28 @@ class Enemy {
     draw() {
         if (!this.alive) return;
         
-        let centerX = this.x + this.width / 2;
-        let centerY = this.y + this.height / 2;
-        
         if (this.type === 'police') {
-            this.drawPolice();
+            // Utiliser l'image babylon.png pour les flics
+            if (babylonImage.complete) {
+                // Augmenter la taille du policier de 20%
+                let policerWidth = this.width * 1.2;
+                let policerHeight = this.height * 1.2;
+                let offsetX = (policerWidth - this.width) / 2;
+                let offsetY = (policerHeight - this.height) / 2;
+                
+                // Flip horizontal selon la direction
+                if (this.velocityX < 0) {
+                    ctx.save();
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(babylonImage, -this.x - policerWidth + offsetX, this.y - offsetY, policerWidth, policerHeight);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(babylonImage, this.x - offsetX, this.y - offsetY, policerWidth, policerHeight);
+                }
+            } else {
+                // Fallback si l'image n'est pas chargée
+                this.drawPolice();
+            }
         } else if (this.type === 'politician') {
             this.drawPolitician();
         } else if (this.type === 'corporate') {
@@ -599,6 +619,11 @@ updateLevel();
 // Gestion des événements clavier
 document.addEventListener('keydown', (e) => {
     gameState.keys[e.key] = true;
+    
+    // Gestion du redémarrage
+    if (e.key.toLowerCase() === 'r' && gameState.gameOver) {
+        restart();
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -731,12 +756,7 @@ function restart() {
     updateLevel();
 }
 
-// Gestion du redémarrage
-document.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() === 'r' && gameState.gameOver) {
-        restart();
-    }
-});
+
 
 // Fonction de rendu du fond
 function drawBackground() {
