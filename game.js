@@ -1371,8 +1371,8 @@ const levelConfigs = {
             new Platform(100, 500, 600, 20, '#8B0000'),
             new Platform(50, 400, 150, 15, '#FF0000'),
             new Platform(600, 400, 150, 15, '#FF0000'),
-            new Platform(200, 300, 200, 15, '#FFD700'),
-            new Platform(450, 300, 200, 15, '#FFD700'),
+            new Platform(200, 300, 120, 15, '#FFD700'),
+            new Platform(480, 300, 120, 15, '#FFD700'),
             new Platform(350, 200, 100, 15, '#008000')
         ],
         collectibles: [
@@ -1402,6 +1402,16 @@ function loadLevel(levelNumber) {
     platforms = [...config.platforms];
     collectibles = [...config.collectibles];
     enemies = [...config.enemies];
+    
+    // S'assurer que tous les collectibles sont réinitialisés
+    collectibles.forEach(collectible => {
+        collectible.reset();
+    });
+    
+    // S'assurer que tous les ennemis sont réinitialisés
+    enemies.forEach(enemy => {
+        enemy.reset();
+    });
     
     // Charger le boss si c'est le niveau final
     if (config.boss) {
@@ -1513,6 +1523,11 @@ function drawGameOver() {
 
 // Fonction de victoire
 function checkWin() {
+    // Ne pas vérifier la victoire si le jeu est en pause ou si c'est un redémarrage
+    if (gameState.gamePaused || gameState.levelChangeTimer > 0) {
+        return;
+    }
+    
     // Pour le niveau boss, vérifier si le boss est vaincu
     if (boss && gameState.level === 7) {
         if (!boss.alive) {
@@ -1523,7 +1538,7 @@ function checkWin() {
     }
     
     let allCollected = collectibles.every(c => c.collected);
-    if (allCollected) {
+    if (allCollected && collectibles.length > 0) {
         gameState.level++;
         // Mettre à jour le niveau maximum atteint
         if (gameState.level > gameState.maxLevelReached) {
@@ -1669,6 +1684,11 @@ function restart(startLevel = 1) {
     collectibles.forEach(collectible => {
         collectible.reset();
     });
+    
+    // Important: Remettre les timers de niveau à zéro
+    gameState.levelChangeTimer = 0;
+    gameState.levelChangeMessage = '';
+    gameState.gamePaused = false;
     
     // Remettre le boss à l'état initial s'il existe
     if (boss) {
