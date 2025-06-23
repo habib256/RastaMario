@@ -402,7 +402,7 @@ class Enemy {
                                                       this.type === 'politician' ? 'un politicien' :
                                                       this.type === 'corporate' ? 'un banquier' :
                                                       this.type === 'juge' ? 'un juge' : 'un ennemi'}!`;
-                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+                gameState.deathMessageTimer = 240; // 4 secondes à 60fps
                 updateLives();
                 if (gameState.lives <= 0) {
                     gameOver();
@@ -815,7 +815,7 @@ class Boss {
                 // Le joueur perd une vie
                 gameState.lives--;
                 gameState.deathMessage = "Touché par le Roi de Babylone !";
-                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+                gameState.deathMessageTimer = 240; // 4 secondes à 60fps
                 updateLives();
                 if (gameState.lives <= 0) {
                     gameOver();
@@ -835,7 +835,7 @@ class Boss {
                 
                 gameState.lives--;
                 gameState.deathMessage = "Touché par un projectile de Babylone !";
-                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+                gameState.deathMessageTimer = 240; // 4 secondes à 60fps
                 updateLives();
                 this.projectiles.splice(index, 1);
                 
@@ -1482,8 +1482,8 @@ function checkWin() {
             }
             
             setTimeout(() => {
-                // Continue le jeu après 3 secondes
-            }, 3000);
+                // Continue le jeu après 5 secondes
+            }, 5000);
         } else {
             // Victoire finale (ne devrait pas arriver avec le boss)
             showFinalVictory();
