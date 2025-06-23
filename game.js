@@ -51,6 +51,8 @@ class Player {
         this.jumpPower = 15;
         this.onGround = false;
         this.direction = 'right';
+        this.spacePressed = false;
+        this.spaceTimer = 0;
     }
 
     update() {
@@ -65,10 +67,41 @@ class Player {
             this.velocityX = 0;
         }
 
-        // Saut
-        if (gameState.keys[' '] && this.onGround) {
-            this.velocityY = -this.jumpPower;
-            this.onGround = false;
+        // Système de saut avec poussée continue (comme Mario)
+        if (gameState.keys[' ']) {
+            if (!this.spacePressed && this.onGround) {
+                // Début du saut immédiat avec saut minimal
+                this.velocityY = -this.jumpPower * 0.4; // Saut très petit au début
+                this.onGround = false;
+                this.spacePressed = true;
+                this.spaceTimer = 0;
+            }
+            
+            // Poussée supplémentaire tant que la touche est maintenue et qu'on monte
+            if (this.spacePressed && this.velocityY < 0 && this.spaceTimer < 25) {
+                this.spaceTimer++;
+                
+                // Première phase: atteindre la hauteur normale (frames 1-15)
+                if (this.spaceTimer <= 15) {
+                    // Ajouter 0.6x de la puissance pour atteindre la hauteur normale
+                    this.velocityY -= this.jumpPower * 0.04; // 0.6 / 15 = 0.04
+                }
+                // Deuxième phase: atteindre 1.5x la hauteur (frames 16-25)
+                else if (this.spaceTimer <= 25) {
+                    // Ajouter 0.5x de la puissance pour atteindre 1.5x
+                    this.velocityY -= this.jumpPower * 0.05; // 0.5 / 10 = 0.05
+                }
+            }
+        } else {
+            // Relâchement de la touche - arrêt de la poussée
+            this.spacePressed = false;
+            this.spaceTimer = 0;
+        }
+        
+        // Reset du flag de saut quand Bob touche le sol
+        if (this.onGround) {
+            this.spacePressed = false;
+            this.spaceTimer = 0;
         }
 
         // Gravité
@@ -134,14 +167,9 @@ class Player {
                         this.velocityY = 0;
                         this.onGround = true;
                     }
-                } else if (this.velocityY < 0) {
-                    // Bob saute, collision avec le bas de la plateforme
-                    // Vérifier que Bob vient bien du dessous
-                    if (this.y + this.height > platform.y + platform.height) {
-                        this.y = platform.y + platform.height;
-                        this.velocityY = 0;
-                    }
                 }
+                // Suppression de la collision avec le bas des plateformes
+                // Bob peut maintenant passer à travers les plateformes par en dessous
             }
         }
         
@@ -1083,16 +1111,17 @@ const levelConfigs = {
             new Platform(600, 240, 100, 15, '#FF0000')
         ],
         collectibles: [
-            new Collectible(130, 485),
-            new Collectible(270, 445),
-            new Collectible(410, 405),
-            new Collectible(550, 365),
-            new Collectible(80, 325),
-            new Collectible(250, 285),
-            new Collectible(390, 245),
-            new Collectible(530, 205),
-            new Collectible(180, 165),
-            new Collectible(380, 125)
+            new Collectible(130, 505),
+            new Collectible(270, 475),
+            new Collectible(410, 445),
+            new Collectible(550, 415),
+            new Collectible(80, 385),
+            new Collectible(250, 355),
+            new Collectible(390, 325),
+            new Collectible(530, 295),
+            new Collectible(180, 265),
+            new Collectible(380, 235),
+            new Collectible(630, 205)
         ],
         enemies: [
             new Enemy(350, canvas.height - 82, 'corporate'),
@@ -1116,18 +1145,18 @@ const levelConfigs = {
             new Platform(250, 220, 300, 20, '#008000')
         ],
         collectibles: [
-            new Collectible(70, 495),
-            new Collectible(220, 455),
-            new Collectible(350, 415),
-            new Collectible(480, 375),
-            new Collectible(610, 335),
-            new Collectible(700, 295),
-            new Collectible(60, 255),
-            new Collectible(210, 215),
-            new Collectible(370, 175),
-            new Collectible(510, 135),
-            new Collectible(650, 95),
-            new Collectible(400, 55)
+            new Collectible(70, 515),
+            new Collectible(220, 485),
+            new Collectible(350, 455),
+            new Collectible(480, 425),
+            new Collectible(610, 395),
+            new Collectible(700, 365),
+            new Collectible(60, 335),
+            new Collectible(210, 305),
+            new Collectible(370, 275),
+            new Collectible(510, 245),
+            new Collectible(650, 215),
+            new Collectible(400, 185)
         ],
         enemies: [
             new Enemy(400, canvas.height - 82, 'police'),
@@ -1153,19 +1182,19 @@ const levelConfigs = {
             new Platform(300, 190, 200, 15, '#FFD700')
         ],
         collectibles: [
-            new Collectible(110, 505),
-            new Collectible(250, 465),
-            new Collectible(370, 425),
-            new Collectible(510, 385),
-            new Collectible(650, 345),
-            new Collectible(150, 305),
-            new Collectible(310, 265),
-            new Collectible(450, 225),
-            new Collectible(610, 185),
-            new Collectible(240, 145),
-            new Collectible(390, 105),
-            new Collectible(550, 65),
-            new Collectible(400, 25)
+            new Collectible(110, 515),
+            new Collectible(250, 485),
+            new Collectible(370, 455),
+            new Collectible(510, 425),
+            new Collectible(650, 395),
+            new Collectible(150, 365),
+            new Collectible(310, 335),
+            new Collectible(450, 305),
+            new Collectible(610, 275),
+            new Collectible(240, 245),
+            new Collectible(390, 215),
+            new Collectible(550, 185),
+            new Collectible(400, 155)
         ],
         enemies: [
             new Enemy(200, canvas.height - 82, 'police'),
@@ -1195,23 +1224,23 @@ const levelConfigs = {
             new Platform(350, 240, 150, 10, '#FFD700')
         ],
         collectibles: [
-            new Collectible(70, 515),
-            new Collectible(190, 485),
-            new Collectible(290, 455),
-            new Collectible(410, 425),
-            new Collectible(510, 395),
-            new Collectible(630, 365),
-            new Collectible(740, 335),
-            new Collectible(100, 305),
-            new Collectible(200, 275),
-            new Collectible(320, 245),
-            new Collectible(420, 215),
-            new Collectible(540, 185),
-            new Collectible(640, 155),
-            new Collectible(280, 125),
-            new Collectible(400, 95),
-            new Collectible(520, 65),
-            new Collectible(420, 35)
+            new Collectible(70, 525),
+            new Collectible(190, 505),
+            new Collectible(290, 485),
+            new Collectible(410, 465),
+            new Collectible(510, 445),
+            new Collectible(630, 425),
+            new Collectible(740, 405),
+            new Collectible(100, 385),
+            new Collectible(200, 365),
+            new Collectible(320, 345),
+            new Collectible(420, 325),
+            new Collectible(540, 305),
+            new Collectible(640, 285),
+            new Collectible(280, 265),
+            new Collectible(400, 245),
+            new Collectible(520, 225),
+            new Collectible(420, 205)
         ],
         enemies: [
             new Enemy(300, canvas.height - 82, 'corporate'),
@@ -1252,33 +1281,33 @@ const levelConfigs = {
             new Platform(300, 180, 250, 8, '#008000')
         ],
         collectibles: [
-            new Collectible(60, 525),
-            new Collectible(160, 505),
-            new Collectible(250, 485),
-            new Collectible(350, 465),
-            new Collectible(440, 445),
-            new Collectible(540, 425),
-            new Collectible(630, 405),
-            new Collectible(720, 385),
-            new Collectible(80, 365),
-            new Collectible(170, 345),
-            new Collectible(270, 325),
-            new Collectible(360, 305),
-            new Collectible(460, 285),
-            new Collectible(550, 265),
-            new Collectible(650, 245),
-            new Collectible(740, 225),
-            new Collectible(140, 205),
-            new Collectible(260, 185),
-            new Collectible(360, 165),
-            new Collectible(480, 145),
-            new Collectible(580, 125),
-            new Collectible(320, 105),
-            new Collectible(450, 85),
-            new Collectible(350, 65),
-            new Collectible(270, 45),
-            new Collectible(500, 25),
-            new Collectible(420, 5)
+            new Collectible(60, 535),
+            new Collectible(160, 520),
+            new Collectible(250, 505),
+            new Collectible(350, 490),
+            new Collectible(440, 475),
+            new Collectible(540, 460),
+            new Collectible(630, 445),
+            new Collectible(720, 430),
+            new Collectible(80, 415),
+            new Collectible(170, 400),
+            new Collectible(270, 385),
+            new Collectible(360, 370),
+            new Collectible(460, 355),
+            new Collectible(550, 340),
+            new Collectible(650, 325),
+            new Collectible(740, 310),
+            new Collectible(140, 295),
+            new Collectible(260, 280),
+            new Collectible(360, 265),
+            new Collectible(480, 250),
+            new Collectible(580, 235),
+            new Collectible(320, 220),
+            new Collectible(450, 205),
+            new Collectible(350, 190),
+            new Collectible(270, 175),
+            new Collectible(500, 160),
+            new Collectible(420, 145)
         ],
         enemies: [
             new Enemy(200, canvas.height - 82, 'police'),
@@ -1599,6 +1628,8 @@ function restart(startLevel = 1) {
     player.velocityY = 0;
     player.onGround = false;
     player.direction = 'right';
+    player.spacePressed = false;
+    player.spaceTimer = 0;
     
     // Remettre tous les ennemis à leur position d'origine
     enemies.forEach(enemy => {
