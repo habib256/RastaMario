@@ -19,6 +19,9 @@ politicienImage.src = 'politicien.png';
 const jugeImage = new Image();
 jugeImage.src = 'juge.png';
 
+const bossImage = new Image();
+bossImage.src = 'boss.png';
+
 // Variables globales du jeu
 let gameState = {
     score: 0,
@@ -26,7 +29,10 @@ let gameState = {
     level: 1,
     gameRunning: true,
     keys: {},
-    gameOver: false
+    gameOver: false,
+    finalVictory: false,
+    deathMessage: '',
+    deathMessageTimer: 0
 };
 
 
@@ -80,6 +86,23 @@ class Player {
             this.y = canvas.height - 50 - this.height;
             this.velocityY = 0;
             this.onGround = true;
+        }
+        
+        // Vérification de chute hors de l'écran (mort)
+        if (this.y > canvas.height + 100) {
+            gameState.lives--;
+            gameState.deathMessage = "Bob est tombé dans le vide !";
+            gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+            updateLives();
+            if (gameState.lives <= 0) {
+                gameOver();
+            } else {
+                // Respawn du joueur
+                this.x = 50;
+                this.y = canvas.height - 100;
+                this.velocityX = 0;
+                this.velocityY = 0;
+            }
         }
 
         // Collision avec les plateformes
@@ -297,12 +320,40 @@ class Enemy {
             this.velocityX = -this.velocityX;
         }
         
-        // Collision avec le joueur
+        // Calculer les dimensions réelles selon le type d'ennemi
+        let actualWidth = this.width;
+        let actualHeight = this.height;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (this.type === 'police') {
+            actualWidth = this.width * 1.2;
+            actualHeight = this.height * 1.2;
+            offsetX = (actualWidth - this.width) / 2;
+            offsetY = (actualHeight - this.height) / 2;
+        } else if (this.type === 'politician') {
+            actualWidth = this.width * 1.4;
+            actualHeight = this.height * 1.4;
+            offsetX = (actualWidth - this.width) / 2;
+            offsetY = (actualHeight - this.height) / 2;
+        } else if (this.type === 'corporate') {
+            actualWidth = this.width * 1.35;
+            actualHeight = this.height * 1.35;
+            offsetX = (actualWidth - this.width) / 2;
+            offsetY = (actualHeight - this.height) / 2;
+        } else if (this.type === 'juge') {
+            actualWidth = this.width * 1.45;
+            actualHeight = this.height * 1.45;
+            offsetX = (actualWidth - this.width) / 2;
+            offsetY = (actualHeight - this.height) / 2;
+        }
+        
+        // Collision avec le joueur (utiliser les dimensions réelles)
         if (this.alive &&
-            player.x < this.x + this.width &&
-            player.x + player.width > this.x &&
-            player.y < this.y + this.height &&
-            player.y + player.height > this.y) {
+            player.x < (this.x - offsetX) + actualWidth &&
+            player.x + player.width > (this.x - offsetX) &&
+            player.y < (this.y - offsetY) + actualHeight &&
+            player.y + player.height > (this.y - offsetY)) {
             
             // Si le joueur saute sur l'ennemi
             if (player.velocityY > 0 && player.y < this.y) {
@@ -313,6 +364,11 @@ class Enemy {
             } else {
                 // Le joueur perd une vie
                 gameState.lives--;
+                gameState.deathMessage = `Touché par ${this.type === 'police' ? 'la police' : 
+                                                      this.type === 'politician' ? 'un politicien' :
+                                                      this.type === 'corporate' ? 'un banquier' :
+                                                      this.type === 'juge' ? 'un juge' : 'un ennemi'}!`;
+                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
                 updateLives();
                 if (gameState.lives <= 0) {
                     gameOver();
@@ -649,6 +705,309 @@ class Enemy {
     }
 }
 
+// Classe Boss - Le Roi de Babylone
+class Boss {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.initialX = x;
+        this.initialY = y;
+        this.width = 80;
+        this.height = 100;
+        this.health = 10;
+        this.maxHealth = 10;
+        this.velocityX = 2;
+        this.velocityY = 0;
+        this.alive = true;
+        this.phase = 1; // 1: Marche, 2: Attaque, 3: Rage
+        this.attackTimer = 0;
+        this.animationFrame = 0;
+        this.hitTimer = 0;
+        this.projectiles = [];
+        this.isAngry = false;
+    }
+
+    update() {
+        if (!this.alive) return;
+        
+        this.animationFrame += 0.1;
+        
+        // Phases du boss selon sa santé
+        if (this.health <= 3 && this.phase < 3) {
+            this.phase = 3; // Phase de rage
+            this.velocityX = 3;
+            this.isAngry = true;
+        } else if (this.health <= 6 && this.phase < 2) {
+            this.phase = 2; // Phase d'attaque
+            this.velocityX = 2.5;
+        }
+        
+        // Mouvement du boss
+        this.x += this.velocityX;
+        
+        // Rebond sur les bords
+        if (this.x <= 0 || this.x + this.width >= canvas.width) {
+            this.velocityX = -this.velocityX;
+        }
+        
+        // Attaques du boss
+        this.attackTimer++;
+        if (this.attackTimer > (this.phase === 3 ? 60 : 120)) {
+            this.attack();
+            this.attackTimer = 0;
+        }
+        
+        // Mise à jour des projectiles
+        this.projectiles.forEach((projectile, index) => {
+            projectile.update();
+            if (projectile.x < 0 || projectile.x > canvas.width || 
+                projectile.y < 0 || projectile.y > canvas.height) {
+                this.projectiles.splice(index, 1);
+            }
+        });
+        
+        // Collision avec le joueur
+        if (this.alive &&
+            player.x < this.x + this.width &&
+            player.x + player.width > this.x &&
+            player.y < this.y + this.height &&
+            player.y + player.height > this.y) {
+            
+            // Si le joueur saute sur le boss
+            if (player.velocityY > 0 && player.y < this.y) {
+                this.takeDamage();
+                player.velocityY = -12;
+            } else {
+                // Le joueur perd une vie
+                gameState.lives--;
+                gameState.deathMessage = "Touché par le Roi de Babylone !";
+                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+                updateLives();
+                if (gameState.lives <= 0) {
+                    gameOver();
+                } else {
+                    // Repousser le joueur
+                    player.x = this.x < player.x ? this.x + this.width + 10 : this.x - player.width - 10;
+                }
+            }
+        }
+        
+        // Collision projectiles avec joueur
+        this.projectiles.forEach((projectile, index) => {
+            if (player.x < projectile.x + projectile.width &&
+                player.x + player.width > projectile.x &&
+                player.y < projectile.y + projectile.height &&
+                player.y + player.height > projectile.y) {
+                
+                gameState.lives--;
+                gameState.deathMessage = "Touché par un projectile de Babylone !";
+                gameState.deathMessageTimer = 120; // 2 secondes à 60fps
+                updateLives();
+                this.projectiles.splice(index, 1);
+                
+                if (gameState.lives <= 0) {
+                    gameOver();
+                } else {
+                    // Repousser le joueur
+                    player.x = 50;
+                    player.y = canvas.height - 100;
+                }
+            }
+        });
+        
+        if (this.hitTimer > 0) {
+            this.hitTimer--;
+        }
+    }
+    
+    attack() {
+        // Lancer des projectiles (oppression de Babylone)
+        let projectileCount = this.phase === 3 ? 3 : (this.phase === 2 ? 2 : 1);
+        
+        for (let i = 0; i < projectileCount; i++) {
+            let angle = this.phase === 3 ? 
+                (Math.PI / 4) * (i - 1) : // En éventail en phase 3
+                Math.atan2(player.y - this.y, player.x - this.x); // Vers le joueur
+                
+            this.projectiles.push(new BossProjectile(
+                this.x + this.width / 2,
+                this.y + this.height / 2,
+                Math.cos(angle) * 4,
+                Math.sin(angle) * 4
+            ));
+        }
+    }
+    
+    takeDamage() {
+        if (this.hitTimer <= 0) {
+            this.health--;
+            this.hitTimer = 30; // Invincibilité temporaire
+            gameState.score += 500;
+            updateScore();
+            
+            if (this.health <= 0) {
+                this.alive = false;
+                // Victoire finale !
+                setTimeout(() => {
+                    showFinalVictory();
+                }, 1000);
+            }
+        }
+    }
+    
+    reset() {
+        this.x = this.initialX;
+        this.y = this.initialY;
+        this.health = this.maxHealth;
+        this.velocityX = 2;
+        this.alive = true;
+        this.phase = 1;
+        this.attackTimer = 0;
+        this.hitTimer = 0;
+        this.projectiles = [];
+        this.isAngry = false;
+    }
+    
+    draw() {
+        if (!this.alive) return;
+        
+        // Effet de hit
+        if (this.hitTimer > 0 && Math.floor(this.hitTimer / 5) % 2) {
+            ctx.save();
+            ctx.globalAlpha = 0.5;
+        }
+        
+        if (bossImage.complete) {
+            // Flip horizontal selon la direction
+            if (this.velocityX < 0) {
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(bossImage, -this.x - this.width, this.y, this.width, this.height);
+                ctx.restore();
+            } else {
+                ctx.drawImage(bossImage, this.x, this.y, this.width, this.height);
+            }
+        } else {
+            // Fallback: Dessin du Roi de Babylone
+            this.drawBossArt();
+        }
+        
+        if (this.hitTimer > 0) {
+            ctx.restore();
+        }
+        
+        // Barre de vie du boss
+        this.drawHealthBar();
+        
+        // Dessiner les projectiles
+        this.projectiles.forEach(projectile => projectile.draw());
+    }
+    
+    drawBossArt() {
+        // Corps massif du Roi de Babylone
+        ctx.fillStyle = this.isAngry ? '#8B0000' : '#4B0082';
+        ctx.fillRect(this.x + 10, this.y + 30, 60, 60);
+        
+        // Cape royale
+        ctx.fillStyle = '#800080';
+        ctx.fillRect(this.x, this.y + 25, 80, 15);
+        
+        // Tête imposante
+        ctx.fillStyle = '#FDBCB4';
+        ctx.fillRect(this.x + 20, this.y + 5, 40, 30);
+        
+        // Couronne de Babylone
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(this.x + 15, this.y, 50, 10);
+        // Pointes de la couronne
+        for (let i = 0; i < 5; i++) {
+            ctx.fillRect(this.x + 18 + i * 9, this.y - 5, 6, 8);
+        }
+        
+        // Yeux maléfiques
+        ctx.fillStyle = '#FF0000';
+        ctx.fillRect(this.x + 28, this.y + 15, 6, 6);
+        ctx.fillRect(this.x + 46, this.y + 15, 6, 6);
+        
+        // Bouche cruelle
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(this.x + 32, this.y + 25, 16, 3);
+        
+        // Sceptre du pouvoir
+        if (Math.sin(this.animationFrame) > 0) {
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(this.x + 85, this.y + 10, 4, 40);
+            // Tête du sceptre
+            ctx.fillRect(this.x + 82, this.y + 8, 10, 8);
+        }
+        
+        // Symboles babyloniens flottants
+        ctx.fillStyle = '#FF6600';
+        ctx.font = '16px Arial';
+        ctx.fillText('$', this.x - 15, this.y + 20);
+        ctx.fillText('§', this.x + this.width + 10, this.y + 30);
+        ctx.fillText('⚖', this.x - 10, this.y + 50);
+        
+        // Jambes
+        ctx.fillStyle = this.isAngry ? '#8B0000' : '#4B0082';
+        ctx.fillRect(this.x + 20, this.y + 85, 15, 15);
+        ctx.fillRect(this.x + 45, this.y + 85, 15, 15);
+    }
+    
+    drawHealthBar() {
+        // Fond de la barre de vie
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(canvas.width / 2 - 150, 30, 300, 20);
+        
+        // Barre de vie
+        let healthPercent = this.health / this.maxHealth;
+        let barColor = healthPercent > 0.6 ? '#00FF00' : 
+                      healthPercent > 0.3 ? '#FFFF00' : '#FF0000';
+        
+        ctx.fillStyle = barColor;
+        ctx.fillRect(canvas.width / 2 - 148, 32, (300 - 4) * healthPercent, 16);
+        
+        // Texte
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('ROI DE BABYLONE', canvas.width / 2, 25);
+        ctx.fillText(`${this.health}/${this.maxHealth}`, canvas.width / 2, 65);
+    }
+}
+
+// Classe pour les projectiles du boss
+class BossProjectile {
+    constructor(x, y, velocityX, velocityY) {
+        this.x = x;
+        this.y = y;
+        this.width = 12;
+        this.height = 12;
+        this.velocityX = velocityX;
+        this.velocityY = velocityY;
+    }
+    
+    update() {
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+    }
+    
+    draw() {
+        // Projectile d'oppression (dollar sign)
+        ctx.fillStyle = '#FF0000';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('$', this.x + this.width/2, this.y + this.height);
+        
+        // Effet de traînée
+        ctx.strokeStyle = '#FF6600';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(this.x + this.width/2, this.y + this.height/2, 8, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+}
+
 // Système de niveaux avec différents parcours
 const levelConfigs = {
     1: {
@@ -671,8 +1030,7 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(300, canvas.height - 82, 'police'),
-            new Enemy(500, 418, 'juge'),
-            new Enemy(650, canvas.height - 82, 'corporate')
+            new Enemy(500, 418, 'juge')
         ]
     },
     2: {
@@ -704,9 +1062,7 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(350, canvas.height - 82, 'corporate'),
-            new Enemy(150, 488, 'politician'),
-            new Enemy(450, 408, 'juge'),
-            new Enemy(600, 368, 'corporate')
+            new Enemy(450, 408, 'juge')
         ]
     },
     3: {
@@ -741,11 +1097,8 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(400, canvas.height - 82, 'police'),
-            new Enemy(100, 498, 'politician'),
             new Enemy(350, 418, 'juge'),
-            new Enemy(500, 338, 'corporate'),
-            new Enemy(150, 218, 'juge'),
-            new Enemy(600, 288, 'corporate')
+            new Enemy(500, 338, 'corporate')
         ]
     },
     4: {
@@ -782,13 +1135,8 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(200, canvas.height - 82, 'police'),
-            new Enemy(120, 508, 'juge'),
             new Enemy(380, 428, 'corporate'),
-            new Enemy(520, 388, 'police'),
-            new Enemy(180, 308, 'juge'),
-            new Enemy(450, 228, 'corporate'),
-            new Enemy(330, 108, 'juge'),
-            new Enemy(650, 338, 'corporate')
+            new Enemy(450, 228, 'juge')
         ]
     },
     5: {
@@ -833,15 +1181,9 @@ const levelConfigs = {
         ],
         enemies: [
             new Enemy(300, canvas.height - 82, 'corporate'),
-            new Enemy(600, canvas.height - 82, 'police'),
-            new Enemy(90, 518, 'politician'),
             new Enemy(310, 458, 'juge'),
-            new Enemy(530, 398, 'corporate'),
-            new Enemy(200, 278, 'politician'),
-            new Enemy(440, 218, 'juge'),
-            new Enemy(380, 98, 'corporate'),
-            new Enemy(450, 38, 'juge'),
-            new Enemy(650, 318, 'corporate')
+            new Enemy(440, 218, 'politician'),
+            new Enemy(380, 98, 'police')
         ]
     },
     6: {
@@ -907,27 +1249,31 @@ const levelConfigs = {
         enemies: [
             new Enemy(200, canvas.height - 82, 'police'),
             new Enemy(500, canvas.height - 82, 'corporate'),
-            new Enemy(700, canvas.height - 82, 'politician'),
-            new Enemy(70, 528, 'police'),
             new Enemy(170, 508, 'juge'),
-            new Enemy(270, 488, 'corporate'),
-            new Enemy(370, 468, 'police'),
-            new Enemy(470, 448, 'juge'),
-            new Enemy(570, 428, 'corporate'),
-            new Enemy(80, 368, 'police'),
-            new Enemy(180, 348, 'juge'),
-            new Enemy(280, 328, 'corporate'),
-            new Enemy(380, 308, 'police'),
-            new Enemy(480, 288, 'juge'),
-            new Enemy(580, 268, 'corporate'),
-            new Enemy(160, 208, 'police'),
-            new Enemy(380, 168, 'juge'),
-            new Enemy(340, 108, 'corporate'),
-            new Enemy(380, 68, 'police'),
-            new Enemy(450, 28, 'juge'),
-            new Enemy(600, 388, 'corporate'),
-            new Enemy(720, 268, 'corporate')
+            new Enemy(470, 448, 'politician'),
+            new Enemy(380, 168, 'corporate'),
+            new Enemy(450, 28, 'juge')
         ]
+    },
+    7: {
+        name: "Confrontation Finale - Roi de Babylone",
+        platforms: [
+            new Platform(100, 500, 600, 20, '#8B0000'),
+            new Platform(50, 400, 150, 15, '#FF0000'),
+            new Platform(600, 400, 150, 15, '#FF0000'),
+            new Platform(200, 300, 200, 15, '#FFD700'),
+            new Platform(450, 300, 200, 15, '#FFD700'),
+            new Platform(350, 200, 100, 15, '#008000')
+        ],
+        collectibles: [
+            new Collectible(130, 465),
+            new Collectible(630, 365),
+            new Collectible(230, 265),
+            new Collectible(480, 265),
+            new Collectible(380, 165)
+        ],
+        enemies: [], // Pas d'ennemis normaux, seulement le boss
+        boss: new Boss(canvas.width / 2 - 40, canvas.height - 150)
     }
 };
 
@@ -936,6 +1282,7 @@ let player = new Player(50, canvas.height - 100);
 let platforms = [];
 let collectibles = [];
 let enemies = [];
+let boss = null;
 
 // Fonction pour charger un niveau
 function loadLevel(levelNumber) {
@@ -945,6 +1292,14 @@ function loadLevel(levelNumber) {
     platforms = [...config.platforms];
     collectibles = [...config.collectibles];
     enemies = [...config.enemies];
+    
+    // Charger le boss si c'est le niveau final
+    if (config.boss) {
+        boss = config.boss;
+        boss.reset();
+    } else {
+        boss = null;
+    }
     
     // Réinitialiser le joueur
     player.x = 50;
@@ -968,7 +1323,7 @@ document.addEventListener('keydown', (e) => {
     gameState.keys[e.key] = true;
     
     // Gestion du redémarrage
-    if (e.key.toLowerCase() === 'r' && gameState.gameOver) {
+    if (e.key.toLowerCase() === 'r' && (gameState.gameOver || gameState.finalVictory)) {
         restart();
     }
 });
@@ -1023,6 +1378,15 @@ function drawGameOver() {
 
 // Fonction de victoire
 function checkWin() {
+    // Pour le niveau boss, vérifier si le boss est vaincu
+    if (boss && gameState.level === 7) {
+        if (!boss.alive) {
+            // Victoire finale déjà gérée dans takeDamage du boss
+            return;
+        }
+        return; // Pas de victoire par collectibles sur le niveau boss
+    }
+    
     let allCollected = collectibles.every(c => c.collected);
     if (allCollected) {
         gameState.level++;
@@ -1048,40 +1412,99 @@ function checkWin() {
             // Message motivant
             ctx.fillStyle = '#FFFFFF';
             ctx.font = '18px Arial';
-            ctx.fillText('Libère Jah People du système Babylone !', canvas.width/2, canvas.height/2 + 50);
+            if (gameState.level === 7) {
+                ctx.fillText('Affronte le Roi de Babylone !', canvas.width/2, canvas.height/2 + 50);
+            } else {
+                ctx.fillText('Libère Jah People du système Babylone !', canvas.width/2, canvas.height/2 + 50);
+            }
             
             setTimeout(() => {
                 // Continue le jeu après 3 secondes
             }, 3000);
         } else {
-            // Victoire finale
-            gameState.gameRunning = false;
-            ctx.fillStyle = 'rgba(0, 255, 0, 0.9)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '48px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('VICTOIRE !', canvas.width/2, canvas.height/2 - 80);
-            
-            ctx.fillStyle = '#FF0000';
-            ctx.font = '32px Arial';
-            ctx.fillText('JAH RASTAFARI !', canvas.width/2, canvas.height/2 - 30);
-            
-            ctx.fillStyle = '#008000';
-            ctx.font = '24px Arial';
-            ctx.fillText('Tu as libéré le peuple de Babylone !', canvas.width/2, canvas.height/2 + 20);
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.font = '20px Arial';
-            ctx.fillText('Score Final: ' + gameState.score, canvas.width/2, canvas.height/2 + 60);
-            
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = '16px Arial';
-            ctx.fillText('One Love, One Heart ! 🌈', canvas.width/2, canvas.height/2 + 100);
-            ctx.fillText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 130);
+            // Victoire finale (ne devrait pas arriver avec le boss)
+            showFinalVictory();
         }
     }
+}
+
+// Fonction pour afficher la victoire finale
+function showFinalVictory() {
+    gameState.gameRunning = false;
+    gameState.gameOver = false; // Pas game over, mais victoire
+    gameState.finalVictory = true;
+}
+
+// Fonction pour dessiner l'écran de victoire finale
+function drawFinalVictory() {
+    // Fond dégradé triomphant
+    let gradient = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width);
+    gradient.addColorStop(0, 'rgba(255, 215, 0, 0.9)');
+    gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0.8)');
+    gradient.addColorStop(1, 'rgba(255, 0, 0, 0.7)');
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Titre principal
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 56px Arial';
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 3;
+    ctx.strokeText('VICTOIRE !', canvas.width/2, canvas.height/2 - 120);
+    ctx.fillText('VICTOIRE !', canvas.width/2, canvas.height/2 - 120);
+    
+    // Message rastafari
+    ctx.fillStyle = '#FF0000';
+    ctx.font = 'bold 36px Arial';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeText('JAH RASTAFARI !', canvas.width/2, canvas.height/2 - 70);
+    ctx.fillText('JAH RASTAFARI !', canvas.width/2, canvas.height/2 - 70);
+    
+    // Message de libération
+    ctx.fillStyle = '#008000';
+    ctx.font = 'bold 28px Arial';
+    ctx.strokeText('BABYLONE EST VAINCU !', canvas.width/2, canvas.height/2 - 20);
+    ctx.fillText('BABYLONE EST VAINCU !', canvas.width/2, canvas.height/2 - 20);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '24px Arial';
+    ctx.strokeText('Le peuple de Jah est libéré !', canvas.width/2, canvas.height/2 + 20);
+    ctx.fillText('Le peuple de Jah est libéré !', canvas.width/2, canvas.height/2 + 20);
+    
+    // Score final
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 24px Arial';
+    ctx.strokeText('Score Final: ' + gameState.score, canvas.width/2, canvas.height/2 + 70);
+    ctx.fillText('Score Final: ' + gameState.score, canvas.width/2, canvas.height/2 + 70);
+    
+    // Citation Bob Marley
+    ctx.fillStyle = '#FF0000';
+    ctx.font = 'italic 20px Arial';
+    ctx.strokeText('"Get up, stand up, stand up for your rights!"', canvas.width/2, canvas.height/2 + 110);
+    ctx.fillText('"Get up, stand up, stand up for your rights!"', canvas.width/2, canvas.height/2 + 110);
+    
+    ctx.fillStyle = '#008000';
+    ctx.font = '18px Arial';
+    ctx.strokeText('- Bob Marley -', canvas.width/2, canvas.height/2 + 135);
+    ctx.fillText('- Bob Marley -', canvas.width/2, canvas.height/2 + 135);
+    
+    // Symboles rastafari
+    ctx.fillStyle = '#FFD700';
+    ctx.font = '32px Arial';
+    ctx.fillText('🌿', canvas.width/2 - 100, canvas.height/2 + 180);
+    ctx.fillText('🇯🇲', canvas.width/2, canvas.height/2 + 180);
+    ctx.fillText('✊', canvas.width/2 + 100, canvas.height/2 + 180);
+    
+    // Instructions
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '18px Arial';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    ctx.strokeText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 220);
+    ctx.fillText('Appuyez sur R pour recommencer', canvas.width/2, canvas.height/2 + 220);
 }
 
 // Fonction de redémarrage
@@ -1093,7 +1516,10 @@ function restart() {
         level: 1,
         gameRunning: true,
         keys: {},
-        gameOver: false
+        gameOver: false,
+        finalVictory: false,
+        deathMessage: '',
+        deathMessageTimer: 0
     };
     
     // Recharger le premier niveau
@@ -1116,6 +1542,11 @@ function restart() {
     collectibles.forEach(collectible => {
         collectible.reset();
     });
+    
+    // Remettre le boss à l'état initial s'il existe
+    if (boss) {
+        boss.reset();
+    }
     
     // Mettre à jour l'interface
     updateScore();
@@ -1167,7 +1598,10 @@ function gameLoop() {
     // Effacer le canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (gameState.gameOver) {
+    if (gameState.finalVictory) {
+        // Afficher l'écran de victoire finale
+        drawFinalVictory();
+    } else if (gameState.gameOver) {
         // Afficher l'écran de game over
         drawGameOver();
     } else if (gameState.gameRunning) {
@@ -1189,9 +1623,31 @@ function gameLoop() {
             enemy.draw();
         });
         
+        // Mettre à jour et dessiner le boss s'il existe
+        if (boss) {
+            boss.update();
+            boss.draw();
+        }
+        
         // Mettre à jour et dessiner le joueur
         player.update();
         player.draw();
+        
+        // Mettre à jour le timer du message de mort
+        if (gameState.deathMessageTimer > 0) {
+            gameState.deathMessageTimer--;
+        }
+        
+        // Afficher le message de mort s'il y en a un
+        if (gameState.deathMessageTimer > 0) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+            ctx.strokeText(gameState.deathMessage, canvas.width/2, 100);
+            ctx.fillText(gameState.deathMessage, canvas.width/2, 100);
+        }
         
         // Vérifier la victoire
         checkWin();
