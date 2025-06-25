@@ -4,7 +4,7 @@
 
 ## 🚀 Jouer Maintenant
 
-### 🎯 [**▶️ JOUER EN LIGNE**](https://pages.github.com/gistair/RastaMario/) 
+### 🎯 [**▶️ JOUER EN LIGNE**](https://habib256.github.io/RastaMario/) 
 *Cliquez pour jouer directement dans votre navigateur !*
 
 > 📱 Compatible ordinateur, tablette et mobile  
@@ -194,4 +194,4 @@ MIT License - Partage libre dans l'esprit rastafari de partage et d'amour.
 
 ---
 
-**🎮 [JOUER MAINTENANT](https://pages.github.com/gistair/RastaMario/) | 🌟 [Code Source](https://github.com/gistair/RastaMario)** 
+**🎮 [JOUER MAINTENANT](https://habib256.github.io/RastaMario/) | 🌟 [Code Source](https://github.com/habib256/RastaMario)** 
